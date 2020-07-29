@@ -1,18 +1,27 @@
+#**************************************************************#
+# UI is defined by tkinter - the code is in the end of this program
+#**************************************************************#
+# Otto Burman's COVID-19 report by Python 27.5.2020
+# updated 2020_0723
+#-----------------------------------------------------------------------#
+# to make a exe use appropriate spec file!
+# python covid19_forec.py
+#-----------------------------------------------------------------------#
 import os
 os.system('cls')
-
 #-----------------------------------------------------------------------#
-print('\n Machine Learning \n- Polynomial Regression Modeling by Otto Burman ')
+print('\n Machine Learning \n- Polynomial Regression Modeling by Dr Otto Burman ')
 #-----------------------------------------------------------------------#
 
 def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     global pol_model, dgr, r2adj, r2
-    import numpy as np #Start: Otto Burman's COVID-19 report by Python 24.5.2020
+    import numpy as np 
     import pandas as pd
-    datasource = 'https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx'
-    print('\n Data Source: \n ', datasource)
+    datasource = 'https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx' 
+    print('\n Open Data Source: \n ', datasource)
+    #--------------------------------------------------------------------#
     datat = pd.read_excel(datasource)
-    df = pd.DataFrame(datat, columns= ['dateRep','day','month','year','cases','deaths','countriesAndTerritories','geoId','countryterritoryCode','popData2018','continentExp'])
+    df = pd.DataFrame(datat, columns= ['dateRep','day','month','year','cases','deaths','countriesAndTerritories','geoId','countryterritoryCode','popData2019','continentExp'])
     if Arg2=="": Arg2=Arg1
     nr_lastdays=days # how many latest datapoints
     # Something to read :) https://machinelearningmastery.com/machine-learning-in-python-step-by-step/
@@ -23,7 +32,8 @@ def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     df_my = df[df['countriesAndTerritories'] == myCountry] # You can change the criterias here
     last_date1 = df_my.iloc[0]['dateRep'] #first element
     first_date1 = df_my.iloc[-1]['dateRep'] #last element
-    popData1 = df_my.iloc[-1]['popData2018'] #last element
+    popData1 = df_my.iloc[-1]['popData2019'] #last element - dis/does not work 24.6.:name has been changed?
+    
     df_rev = df_my.iloc[::-1] # reversing the order
     df_cum= df_rev['deaths'].cumsum() # counting cumulative deaths 
     deaths_my  = np.array(df_cum) # making an array for plots
@@ -39,7 +49,7 @@ def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     deaths_my1 = deaths_my[from_these:] # elements after from_these 
     sum_deaths1 = deaths_my1[-1]
     deaths_rate1=(sum_deaths1/popData1)*100
-    deaths_rate1=round(deaths_rate1,2)
+    deaths_rate1=round(deaths_rate1,3)
     
     
     #forecasts for the first country-------------#
@@ -60,12 +70,13 @@ def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     formulate(y) # the dataserie (y) to the sub-program
     print('\n Machine Learning process is giving the most suitable model for \n', 
             Arg1, ' /  ', 'Deaths:', sum_deaths1, 'Population:', popData1, "deaths/population*100=", deaths_rate1, '%\n',
-            pol_model, '\n dgr: ', dgr,' R2(adj): ', r2adj, ' R2: ', round(r2,2), '\n')
+            pol_model, '\n dgr: ', dgr,' R2(adj):', r2adj, ' R2: ', round(r2,2), '\n')
     # exit() # the exit was for testing purpose only
     
     #dgr-value is used for my_pol_model fkn y= x0+x1**2+x2**3+...
     my_pol_model = np.poly1d(np.polyfit(x, y, dgr))
-    # r2 was already calculated #r2=((r2_score(y, my_pol_model(x)))*100) # how many % of the variation is explaided
+    # r2 was already calculated #
+    r2=((r2_score(y, my_pol_model(x)))*100) # how many % of the variation is explaided
     r2=int(round(r2,0))
     
     #We can make a forecast based one single value
@@ -82,9 +93,9 @@ def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     next_y = (next_y[0]) #print(next_y)
     # print('next_y start end', next_y[0],next_y[-1]) 
     if (next_y[0]-next_y[-1]) <= 0: 
-        trend1='(upwards!)'
+        trend1='(rising trend!)'
     else: 
-        trend1='(downwards?)'
+        trend1='(no new cases!)'
         
     my_timeline = np.linspace(0, len(x)+lenght_fo, len(x)+lenght_fo) #for plotting
     #my_forecast------------------------------------------#
@@ -95,16 +106,20 @@ def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     #plt.subplot(1, 2, 1) #211=vertically # 1,2,1=horisontally
     #plt.plot(deaths_my1)
     #-------------------------------------------------------------------
+    
+    
+    
     plt.scatter(x, y, color='black', marker='.')
-    plt.plot(x, my_pol_model(x),label='Model({}) Explained {}%'.format(dgr,r2))
-    plt.plot(next_x, next_y, 'rX', label='Forecast for {} days'.format(lenght_fo))
+    plt.plot(x, my_pol_model(x),label='Polynomial Model (d={}; $R^2$(adj)={})'.format(dgr,r2adj))
+    plt.plot(next_x, next_y, 'rX', label='Forecast for {} days: {}'.format(lenght_fo,trend1))
     plt.legend(loc='lower right')
     #--------------------------------------------------------------------
-    plt.title('COVID-19 Deaths(from {} - until {}) \n Model Estimation based on {} days'.format(first_date1, last_date1, nr_lastdays)) 
-    plt.text(nr_lastdays*0.50,sum_deaths1*0.95, 'Source: European Open Data', fontsize=8)
-    plt.text(nr_lastdays*0.10,sum_deaths1*0.90, 'Totally {} Deaths in {}.'.format(sum_deaths1, Arg1))
-    plt.text(nr_lastdays*0.10,sum_deaths1*0.40, 'Population (2018) {} \n Death rate {} % \n {} '.format(int(popData1), deaths_rate1, trend1))
-    #plt.xlabel('Source: {}'.format(datasource))
+    plt.title('COVID-19 Deaths({}) \n Model Estimation based on the last {} days'
+              .format(last_date1, nr_lastdays), fontsize=10) 
+    #plt.text(nr_lastdays*0.50,sum_deaths1*0.90, 'Source: European Open Data', fontsize=8)
+    plt.axis([1, (len(x)+lenght_fo)*1.05, 1, next_y[0]*1.05])# xmin - max -- ymin - max 
+    plt.text(5,next_y[0]*0.8 , '{} ({} population) \n{} deaths \n({} %)'
+            .format(Arg1, int(popData1), sum_deaths1, deaths_rate1,  ), fontsize=8    )
     plt.ylabel('Cumulative Deaths')
     # PLOT1 ending-------------------------------------------------------------------
     
@@ -114,7 +129,7 @@ def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     df_my = df[df['countriesAndTerritories'] == myCountry] # You can change the criterias here
     last_date2 = df_my.iloc[0]['dateRep'] #first element
     first_date2 = df_my.iloc[-1]['dateRep'] #last element
-    popData2 = df_my.iloc[-1]['popData2018'] #last element
+    popData2 = df_my.iloc[-1]['popData2019'] #last element
     df_rev = df_my.iloc[::-1] # reversing the order
     df_cum= df_rev['deaths'].cumsum() # counting cumulative deaths 
     deaths_my = np.array(df_cum) # making an array for plots
@@ -123,7 +138,9 @@ def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     deaths_my2=deaths_my[from_these:]
     sum_deaths2=deaths_my2[-1]
     deaths_rate2=(sum_deaths2/popData2)*100
-    deaths_rate2= round(deaths_rate2,2)
+    # print (deaths_rate2)
+    deaths_rate2= round(deaths_rate2,3)
+    # print (deaths_rate2)
     
     #forecasts for the second country 
     # print (len(deaths_my1))
@@ -167,9 +184,9 @@ def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     next_y = (next_y[0])
     #print(next_y) 
     if (next_y[0]-next_y[-1]) <= 0: 
-        trend2='(upwards!)'
+        trend2='(rising trend!)'
     else: 
-        trend2='(downwards?)'
+        trend2='(no new cases!)'
         
         
     #plots 
@@ -181,17 +198,33 @@ def covid_show(Arg1, Arg2, days, model_d,forecast_len):
     #plt.plot(deaths_my2)
     #-------------------------------------------------------------------
     plt.scatter(x, y, color='black', marker='.')
-    plt.plot(x, my_pol_model(x),label='Model({}) Explained {}%'.format(dgr,r2))
-    plt.plot(next_x, next_y, 'rX', label='Forecast for {} days'.format(lenght_fo))
+    plt.plot(x, my_pol_model(x),label='Polynomial Model(d={}; $R^2$(adj)={})'.format(dgr,r2adj))
+    plt.plot(next_x, next_y, 'rX', label='Forecast for {} days: {}'.format(lenght_fo,trend2))
     plt.legend(loc='lower right')
     #--------------------------------------------------------------------
     plt.title('\n ')
-    plt.text(nr_lastdays*0.10, sum_deaths2*0.90, 'Totally {} Deaths in {}.'.format(sum_deaths2, Arg2))
-    plt.text(nr_lastdays*0.10, sum_deaths2*0.40, 'Population (2018) {} \n Death rate {} % \n {} '.format(int(popData2), deaths_rate2, trend2))
-    plt.xlabel('Time (days)')
+    plt.axis([1, (len(x)+lenght_fo)*1.05, 1, next_y[0]*1.05])# xmin - max -- ymin - max 
+    
+    plt.text(5,next_y[0]*0.8, '{} ({} population) \n{} deaths \n({} %)'
+            .format(Arg2, int(popData2), sum_deaths2, deaths_rate2  ), fontsize=8    )
+    
+    plt.xlabel('Time (days) \nSource: European Open Data \n', fontsize=8 )
     plt.ylabel('Cumulative Deaths')
-    plt.show()
-    my_UI()
+    
+    #----------------------------------------------------------------------
+    if Create_Picture==Arg1+'_'+Arg2+'.pdf': 
+        plt.savefig(Arg1+'_'+Arg2+'.pdf')
+    else:
+        plt.show()
+        
+    #----------------------------------------------------------------------
+    #The picture memeory should be emptied
+    # https://www.kite.com/python/examples/1886/matplotlib-clear-a-figure
+    plt.clf() # Otherwise picures are accumulated
+    #----------------------------------------------------------------------
+    #**********************************************************************
+    
+    
     # End ot the 2nd PLOT for the 2nd Country ----------------------------
     
     # Selecting the best polynomial model for presenting the data
@@ -273,75 +306,124 @@ def formulate(y):
     dgr_new=dgr # global varable which value defines the plots 
     
     return()
-    # best model ends here
+    # best model selection process ends here
     
-    
-def my_UI():
-    import tkinter as tk
-    
-    def get_texts():
-        global c1, c2
-        c1 = e1.get()
-        c2 = e2.get()
-        
-        
-    def show_covid():
-        
-        global c1, c2
-        c1 = e1.get()
-        c2 = e2.get() 
-        degree=int(d1.get())
-        days=int(d2.get())
-        forecast_len=int(d3.get())
-        
-        covid_show(c1,c2,days,degree,forecast_len)
-        
-        
-        
-    def open_web():
-        import webbrowser
-        webbrowser.open_new_tab("www.ottoburman.fi\documents\countries.txt")
-        
-        
-    window = tk.Tk()
-    window.geometry("600x600+300+100")
-    window.title("Compare COVID-19 Deaths between Countries ")
-    
-    e1 =  tk.Entry(window)
-    e1.insert(0, 'Finland')
-    e2 =  tk.Entry(window)
-    e2.insert(0, 'Sweden')
-    
-    d1 =  tk.Entry(window)
-    d1.insert(0, '3')
-    d2 =  tk.Entry(window)
-    d2.insert(0, '75')
-    d3 =  tk.Entry(window)
-    d3.insert(0, '3')
-    
-    tk.Label(window,text="Country1: ").pack()
-    e1.pack()
-    tk.Label(window,text="Country2: ").pack()
-    e2.pack()
-    
-    b1 =  tk.Button(window, text="_S_H_O_W__THE_PLOTTINGS_ ", command= show_covid)
-    b1.pack()
-    
-    tk.Label(window,text="\n EXTRA OPTIONS: \n Automatic Polynom Degree (d) Modelling \n for the forecasts \n f(y)= x0 + x1 + x2*(x*x) + x3*(x*x*x)+ ... xd*(x*x*x*x...xd)}").pack()
-    # d1.pack() 
-    tk.Label(window,text="How many (last) observations for the output:").pack()
-    d2.pack()
-    tk.Label(window,text="Lengt for the forecast (days):").pack()
-    d3.pack()
-    
-    b3 =  tk.Button(window, text="HELP: Gives a list for all the Available 209 Country Names!" , command= open_web)
-    b3.pack()
-    
-    b2 =  tk.Button(window, text="Quit Now" , command= window.destroy)
-    b2.pack()
-    
-    tk.Label(window,text="\n Data Source: \n COVID-19 Coronavirus data \n European Union open data \n").pack()
-    
-    window.mainloop()
+#**************************************************************#
+# UI by tkinter starts here
+#**************************************************************#
 
-my_UI()
+import tkinter as tk
+from tkinter.ttk import Combobox
+ # https://www.tutorialsteacher.com/python/create-ui-using-tkinter-in-python
+window = tk.Tk()
+
+
+def get_texts():
+    global c1, c2
+    c1 = cb1.get()
+    c2 = cb2.get()
+    
+    
+def show_covid():
+    global Create_Picture
+    Create_Picture=''
+    
+    global c1, c2
+    c1 = cb1.get()
+    c2 = cb2.get() 
+    degree=3 #int(d1.get())
+    days=int(d2.get())
+    forecast_len=int(d3.get())
+    ## Causes an error return self.func(*args)
+    covid_show(c1,c2,days,degree,forecast_len)
+    
+    
+def open_help():
+    import webbrowser
+    webbrowser.open_new_tab("www.ottoburman.fi\documents\countries.txt")
+    
+    
+def show_picture_pdf():
+    global Create_Picture
+    Create_Picture=cb1.get()+'_'+cb2.get()+'.pdf'
+    
+    global c1, c2
+    c1 = cb1.get()
+    c2 = cb2.get() 
+    degree=3 #int(d1.get())
+    days=int(d2.get())
+    forecast_len=int(d3.get())
+    ## Causes an error return self.func(*args)
+    covid_show(c1,c2,days,degree,forecast_len)
+    #----------------------------------------------#
+    import webbrowser
+    webbrowser.open_new_tab(cb1.get()+'_'+cb2.get()+'.pdf')
+    
+
+# data=("one", "two", "three", "four")
+# import numpy as np 
+import pandas as pd
+# for testing download the data  
+# C:\Users\xxx\Downloads\COVID-19-geographic-disbtribution-worldwide.xlsx
+# datasource = 'C:/Users/xxx/Downloads/COVID-19-geographic-disbtribution-worldwide.xlsx' #6.7.2020
+datasource = 'https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx' #6.7.2020
+# print('\n Data Source: \n ', datasource)
+datat = pd.read_excel(datasource)
+df = pd.DataFrame(datat, columns= ['dateRep','day','month','year','cases','deaths','countriesAndTerritories','geoId','countryterritoryCode','popData2019','continentExp'])
+# applying groupby() function to group the data by the Code  
+gk = df.groupby('countryterritoryCode') 
+CCodes = gk.first()
+# type(CCodes) # pandas Dataframe converts to lists...
+# https://datatofish.com/convert-pandas-dataframe-to-list/
+CountryNames = CCodes['countriesAndTerritories'].values.tolist()
+# print ('List of all Contries: ', CountryNames)
+
+data = CountryNames
+cb1 = Combobox(window, values=data)
+# cb1.place(x=30, y=150)
+cb2 = Combobox(window, values=data)
+# cb2.place(x=30, y=350)
+cb1.insert(0, 'Finland')
+cb2.insert(0, 'Sweden')
+
+# d1 =  tk.Entry(window)
+# d1.insert(0, '3')
+d2 =  tk.Entry(window)
+d2.insert(0, '100')
+d3 =  tk.Entry(window)
+d3.insert(0, '2')
+
+tk.Label(window,text="Country1: ").pack()
+cb1.pack()
+tk.Label(window,text="Country2: ").pack()
+cb2.pack()
+
+tk.Label(window,text="\n ").pack()
+b1 =  tk.Button(window, text="_S_H_O_W__PLOTS ", command = show_covid)
+b1.pack()
+
+tk.Label(window,text="\n ").pack()
+b2 =  tk.Button(window, text="_S_H_O_W__AND_SAVE_picture as pdf", command = show_picture_pdf)
+b2.pack()
+
+tk.Label(window,text="\n EXTRA OPTIONS: \n Automatic Polynom Degree (d) Modelling \n for the forecasts \n f(y)= x0 + x1 + x2*(x*x) + x3*(x*x*x)+ ... xd*(x*x*x*x...xd)}").pack()
+# d1.pack() 
+tk.Label(window,text="How many (last) observations for the model:").pack()
+d2.pack()
+tk.Label(window,text="Lengt for the forecast (days):").pack()
+d3.pack()
+
+b3 =  tk.Button(window, text="HELP: Gives a list and shows the source code!" , command= open_help)
+b3.pack()
+
+b2 =  tk.Button(window, text="Quit Now" , command= window.destroy)
+b2.pack()
+
+tk.Label(window,text="\n Data Source: \n COVID-19 Coronavirus data \n European Union open data \n").pack()
+
+window.geometry("600x700+300+100")
+window.title("Compare COVID-19 Deaths between Countries ")
+window.mainloop()
+#********************************************************************
+#UI code ends here
+#********************************************************************
